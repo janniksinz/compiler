@@ -69,6 +69,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	// register infixParseFns
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
@@ -351,19 +352,21 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 	expression.Consequence = p.parseBlockStatement()
 
-	if p.peekTokenIs(token.ELSE) {
+	if p.peekTokenIs(token.ELSE) { // optional else block
 		p.nextToken()
 		if !p.expectPeek(token.LBRACE) {
 			return nil
 		}
 		expression.Alternative = p.parseBlockStatement()
+		// after parsing the alternative block, p.curToken is }
 	}
 
 	return expression
 }
 
 // parseBlockStatement starts with p.curToken being { and parses:
-// - */
+// - list of Statements while not }
+// */
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: p.curToken}
 	block.Statements = []ast.Statement{}
@@ -378,6 +381,54 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		p.nextToken()
 	}
 	return block
+}
+
+// parseFunctionLiteral parses fn (<parameters>) { <body> }
+//   - creates a FunctionLiteral node
+//   - adds parameters
+//   - */
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	lit := &ast.FunctionLiteral{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil // syntax error, '(' expected, no parameters
+	}
+	lit.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil // syntax error, '{' expected, no body
+	}
+	lit.Body = p.parseBlockStatement()
+
+	return lit
+}
+
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return identifiers // no parameters
+	}
+
+	// first parameter is necessary
+	p.nextToken()
+	ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifiers = append(identifiers, ident)
+
+	// optional parameters
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken() // comma
+		p.nextToken() // parameter
+		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, ident)
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil // syntax error, ')' expected
+	}
+
+	return identifiers
 }
 
 // Pratt Parser
