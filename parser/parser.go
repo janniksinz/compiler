@@ -62,6 +62,10 @@ func New(l *lexer.Lexer) *Parser {
 	// register pPE
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	// bool
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
+
 	// pIE
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -304,6 +308,11 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	}
 	lit.Value = value
 	return lit
+}
+
+// parseBoolean
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 }
 
 // Pratt Parser
