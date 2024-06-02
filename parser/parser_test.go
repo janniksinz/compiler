@@ -12,16 +12,26 @@ func TestLetStatements(t *testing.T) {
 		input              string
 		expectedIdentifier string
 		expectedValue      interface{}
+		shouldFail         bool
 	}{
-		{"let x = 5;", "x", 5},
-		{"let y = true;", "y", true},
-		{"let foobar = y;", "foobar", "y"},
+		{"let x = 5;", "x", 5, false},
+		{"let y = true;", "y", true, false},
+		{"let foobar = y;", "foobar", "y", false},
+		//{"let z 10", "y", nil, true}, // this case is expected to fail
 	}
 
 	for _, tt := range tests {
 		l := lexer.New(tt.input)
 		p := New(l)
 		program := p.ParseProgram()
+
+		if tt.shouldFail {
+			if len(p.Errors()) == 0 {
+				t.Errorf("expected error, but got none")
+				continue
+			}
+		}
+
 		checkParserErrors(t, p)
 
 		if len(program.Statements) != 1 {
