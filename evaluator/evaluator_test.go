@@ -35,6 +35,32 @@ func TestEvalBooleanExpression(t *testing.T) {
 	}
 }
 
+func TestBangOperator(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+		fail     bool
+	}{
+		{"!true", false, false},
+		{"!false", true, false},
+		{"!5", false, false},
+		{"!!true", true, false},
+		{"!!false", false, false},
+		{"!!5", true, false},
+	}
+
+	for _, tt := range tests {
+		if tt.fail {
+			evaluated := testEval(tt.input)
+			testBooleanObject(t, evaluated, !tt.expected)
+		} else {
+			evaluated := testEval(tt.input)
+			testBooleanObject(t, evaluated, tt.expected)
+		}
+
+	}
+}
+
 // test helper functions
 // */
 
