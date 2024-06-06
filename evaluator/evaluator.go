@@ -37,6 +37,8 @@ func Eval(node ast.Node) object.Object {
 	return nil
 }
 
+// eval Functions */
+
 func evalStatements(stmts []ast.Statement) object.Object {
 	var result object.Object
 	for _, statement := range stmts {
@@ -112,6 +114,22 @@ func evalIntegerInfixExpression(
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
 		return &object.Integer{Value: leftVal / rightVal}
+	case "<":
+		return nativeBoolToBooleanObject(leftVal < rightVal)
+	case ">":
+		return nativeBoolToBooleanObject(leftVal > rightVal)
+	case "==":
+		return nativeBoolToBooleanObject(leftVal == rightVal)
+	case "!=":
+		return nativeBoolToBooleanObject(leftVal != rightVal)
+	case "<=":
+		return nativeBoolToBooleanObject(leftVal <= rightVal)
+	case ">=":
+		return nativeBoolToBooleanObject(leftVal >= rightVal)
+	case "&&":
+		return nativeBoolToBooleanObject(leftVal != 0 && rightVal != 0)
+	case "||":
+		return nativeBoolToBooleanObject(leftVal != 0 || rightVal != 0)
 	default:
 		return NULL
 
