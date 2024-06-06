@@ -23,7 +23,7 @@ func Eval(node ast.Node) object.Object {
 		return Eval(node.Expression)
 		// Expressions
 	case *ast.IntegerLiteral:
-		return &object.Integer{Value: node.Value}
+		return &object.Integer{Value: node.Value} // check literal values before checking object wrappers to avoid comparing pointers
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
@@ -62,6 +62,10 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
+	case operator == "==":
+		return nativeBoolToBooleanObject(left == right)
+	case operator == "!=":
+		return nativeBoolToBooleanObject(left != right)
 	default:
 		return NULL
 	}
@@ -114,6 +118,7 @@ func evalIntegerInfixExpression(
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
 		return &object.Integer{Value: leftVal / rightVal}
+	// comparing literal values before comparing object wrappers to avoid comparing pointers
 	case "<":
 		return nativeBoolToBooleanObject(leftVal < rightVal)
 	case ">":
