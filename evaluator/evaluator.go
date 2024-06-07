@@ -26,18 +26,18 @@ func Eval(node ast.Node) object.Object {
 		return Eval(node.Expression)
 	case *ast.LetStatement:
 		return NULL
-
-		// Expressions
-	case *ast.IntegerLiteral:
-		return &object.Integer{Value: node.Value} // check literal values before checking object wrappers to avoid comparing pointers
-	case *ast.Boolean:
-		return nativeBoolToBooleanObject(node.Value)
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue)
 		if isError(val) {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
+
+		// Expressions
+	case *ast.IntegerLiteral:
+		return &object.Integer{Value: node.Value} // check literal values before checking object wrappers to avoid comparing pointers
+	case *ast.Boolean:
+		return nativeBoolToBooleanObject(node.Value)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
 		if isError(right) {
