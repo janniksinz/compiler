@@ -48,3 +48,23 @@ func (b *Boolean) Inspect() string      { return fmt.Sprintf("%t", b.Value) }
 func (n *Null) Inspect() string         { return "null" }
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
 func (e *Error) Inspect() string        { return "ERROR: " + e.Message }
+
+// Environment
+func NewEnvironment() *Environment {
+	s := make(map[string]Object)
+	return &Environment{store: s}
+}
+
+type Environment struct {
+	store map[string]Object
+}
+
+func (e *Environment) Get(name string) (Object, bool) {
+	obj, ok := e.store[name]
+	return obj, ok
+}
+
+func (e *Environment) Set(name string, val Object) Object {
+	e.store[name] = val
+	return val
+}
