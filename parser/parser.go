@@ -176,7 +176,12 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return p.parseExpressionStatement()
+		stmt := p.parseExpressionStatement()
+		// if next token is a semicolon, consume it
+		if p.peekTokenIs(token.SEMICOLON) {
+			p.nextToken()
+		}
+		return stmt
 	}
 }
 
@@ -199,9 +204,15 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 	stmt.Value = p.parseExpression(LOWEST)
 
-	for !p.curTokenIs(token.SEMICOLON) {
+	// if the next token is a semicolon, consume it.
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
+	/*
+		for !p.curTokenIs(token.SEMICOLON) {
+			p.nextToken()
+		}
+	*/
 
 	return stmt
 }
