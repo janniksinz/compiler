@@ -101,6 +101,11 @@ type CallExpression struct {
 	Arguments []Expression
 }
 
+type StringLiteral struct {
+	Token token.Token
+	Value string
+}
+
 // Interface methods for
 //	- ReturnStatement
 //	- LetStatement
@@ -151,6 +156,9 @@ func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
 
 func (ce *CallExpression) expressionNode()      {}
 func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+
+func (sl *StringLiteral) expressionNode()      {}
+func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 
 // String implementations for
 //   - Program
@@ -283,4 +291,8 @@ func (ce *CallExpression) String() string {
 	out.WriteString(")")
 
 	return out.String()
+}
+
+func (sl *StringLiteral) String() string {
+	return sl.Token.Literal
 }

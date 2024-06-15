@@ -1,12 +1,13 @@
 package lexer
 
 import (
-	"monkey/token"
 	"testing"
+
+	"monkey/token"
 )
 
 func TestNextToken(t *testing.T) {
-	input2 := `let five = 5;
+	input := `let five = 5;
 let ten = 10;
 
 let add = fn(x, y) {
@@ -25,10 +26,11 @@ if (5 < 10) {
 
 10 == 10;
 10 != 9;
-
+"foobar"
+"foo bar"
 `
 
-	tests2 := []struct {
+	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
@@ -105,12 +107,13 @@ if (5 < 10) {
 		{token.NOT_EQ, "!="},
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
-		{token.EOF, ""},
+		{token.STRING, "foobar"},
+		{token.STRING, "foo bar"},
 	}
 
-	l := New(input2)
+	l := New(input)
 
-	for i, tt := range tests2 {
+	for i, tt := range tests {
 		tok := l.NextToken()
 
 		if tok.Type != tt.expectedType {
