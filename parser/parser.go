@@ -72,6 +72,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
 	// register infixParseFns
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
@@ -454,7 +455,7 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 //	between IDENT & arguments	*/
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{Token: p.curToken, Function: function}
-	exp.Arguments = p.parseCallArguments()
+	exp.Arguments = p.parseExpressionList(token.RPAREN)
 	return exp
 }
 
@@ -462,16 +463,18 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 	args := []ast.Expression{}
 
 	if p.peekTokenIs(token.RPAREN) {
-		p.nextToken()
-		return args // no arguments
+		p.nextToken() //
+		return args   // no arguments
 	}
 
+	// add the first argument
 	p.nextToken()
 	args = append(args, p.parseExpression(LOWEST))
 
+	// add optional arguments
 	for p.peekTokenIs(token.COMMA) {
-		p.nextToken()
-		p.nextToken()
+		p.nextToken() // comma
+		p.nextToken() // argument
 		args = append(args, p.parseExpression(LOWEST))
 	}
 
@@ -485,6 +488,44 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 // parseStringLiteral
 func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// parseArrayLiteral
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	array := &ast.ArrayLiteral{Token: p.curToken}
+	array.Elements = p.parseExpressionList(token.RBRACKET)
+	return array
+}
+
+// parseExpressionList
+//   - parses and returns a list of expressions
+//     */
+func (p *Parser) parseExpressionList(end token.TokenType) []ast.Expression {
+	list := []ast.Expression{}
+
+	// empty list
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list // return empty list
+	}
+
+	// first element (not prefixed by a comma)
+	p.nextToken()
+	list = append(list, p.parseExpression(LOWEST))
+
+	// optional elements
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		list = append(list, p.parseExpression(LOWEST))
+	}
+
+	// ensure closing bracket
+	if !p.expectPeek(end) {
+		return nil
+	}
+
+	return list
 }
 
 // Pratt Parser
