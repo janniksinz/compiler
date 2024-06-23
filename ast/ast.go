@@ -111,6 +111,13 @@ type ArrayLiteral struct {
 	Elements []Expression
 }
 
+// IndexExpression is used to access elements in an array
+type IndexExpression struct {
+	Token token.Token // the '[' token
+	Left  Expression  // the object that's being accessed
+	Index Expression  // the index of the object
+}
+
 // Interface methods for
 //	- ReturnStatement
 //	- LetStatement
@@ -167,6 +174,9 @@ func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 
 func (al *ArrayLiteral) expressionNode()      {}
 func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+
+func (ie *IndexExpression) expressionNode()      {}
+func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
 
 // String implementations for
 //   - Program
@@ -316,6 +326,18 @@ func (al *ArrayLiteral) String() string {
 	out.WriteString("[")
 	out.WriteString(strings.Join(elements, ", "))
 	out.WriteString("]")
+
+	return out.String()
+}
+
+func (ie *IndexExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
 
 	return out.String()
 }
