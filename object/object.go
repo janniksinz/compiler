@@ -18,6 +18,7 @@ const (
 	FUNCTION_OBJ     = "FUNCTION"
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
+	ARRAY_OBJ        = "ARRAY"
 )
 
 type Object interface {
@@ -53,6 +54,10 @@ type Builtin struct {
 	Fn BuiltinFunction
 }
 
+type Array struct {
+	Elements []Object
+}
+
 // Type functions
 func (i *Integer) Type() ObjectType      { return INTEGER_OBJ }
 func (b *Boolean) Type() ObjectType      { return BOOLEAN_OBJ }
@@ -61,6 +66,7 @@ func (rv *ReturnValue) Type() ObjectType { return RETURN_VALUE_OBJ }
 func (e *Error) Type() ObjectType        { return ERROR_OBJ }
 func (s *String) Type() ObjectType       { return STRING_OBJ }
 func (b *Builtin) Type() ObjectType      { return BUILTIN_OBJ }
+func (ao *Array) Type() ObjectType       { return ARRAY_OBJ }
 
 // env
 func (f *Function) Type() ObjectType { return FUNCTION_OBJ }
@@ -91,6 +97,20 @@ func (f *Function) Inspect() string {
 }
 func (s *String) Inspect() string  { return s.Value }
 func (b *Builtin) Inspect() string { return "builtin function" }
+func (ao *Array) Inspect() string {
+	var out bytes.Buffer
+
+	elements := []string{}
+	for _, e := range ao.Elements {
+		elements = append(elements, e.Inspect())
+	}
+
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ","))
+	out.WriteString("]")
+
+	return out.String()
+}
 
 // Environment
 func NewEnvironment() *Environment {
