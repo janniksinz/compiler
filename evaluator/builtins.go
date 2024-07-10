@@ -1,6 +1,8 @@
 package evaluator
 
-import "monkey/object"
+import (
+	"monkey/object"
+)
 
 // builtins is a map of builtin functions
 // this is where we implement the builtins

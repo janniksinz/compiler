@@ -2,7 +2,7 @@
 
 ## Tests
 Run the tests to ensure all packages are working as expected:
-```go
+```bash
 // Test Framework: gotest
 // Test kind: Directory
 go test ./... // to run tests on all packages at once
@@ -10,7 +10,7 @@ go test ./... // to run tests on all packages at once
 
 ## Run
 Start the REPL within your local go environment to test it out:
-```go
+```bash
 go run main.go
 ```
 Only some main concepts of a programming language are implemented. Don't expect list comprehension here :)
