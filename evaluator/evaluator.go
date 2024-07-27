@@ -357,6 +357,7 @@ func evalStringInfixExpression(
 	return &object.String{Value: leftVal + rightVal}
 }
 
+// Array Expressions
 func evalIndexExpression(left, index object.Object) object.Object {
 	switch {
 	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
