@@ -44,7 +44,7 @@ func Start(in io.Reader, out io.Writer) {
 	}
 }
 
-const MONKEY_FACE = `
+const PICTURE = `
             __,__
   .--.  .-"      "-.  .--.
  / .. \/   .-. .-.  \/ .. \
@@ -59,8 +59,8 @@ const MONKEY_FACE = `
 `
 
 func printParserErrors(out io.Writer, errors []string) {
-	io.WriteString(out, MONKEY_FACE)
-	io.WriteString(out, "Woops! We ran into some monkey business here!\n")
+	io.WriteString(out, PICTURE)
+	io.WriteString(out, "Woops! We ran into some Errors here!")
 	io.WriteString(out, " parser errors:\n")
 	for _, msg := range errors {
 		io.WriteString(out, "\t"+msg+"\n")
