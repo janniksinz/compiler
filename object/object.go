@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"monkey/ast"
 	"strings"
 )
@@ -19,11 +20,16 @@ const (
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
 	ARRAY_OBJ        = "ARRAY"
+	HASH_OBJ         = "HASH"
 )
 
 type Object interface {
 	Type() ObjectType
 	Inspect() string
+}
+
+type Hashable interface {
+	HashKey() HashKey
 }
 
 type Integer struct {
@@ -58,6 +64,20 @@ type Array struct {
 	Elements []Object
 }
 
+type HashKey struct {
+	Type  ObjectType // bool, int or string
+	Value uint64
+}
+
+type HashPair struct {
+	Key   Object
+	Value Object
+}
+
+type Hash struct {
+	Pairs map[HashKey]HashPair
+}
+
 // Type functions
 func (i *Integer) Type() ObjectType      { return INTEGER_OBJ }
 func (b *Boolean) Type() ObjectType      { return BOOLEAN_OBJ }
@@ -67,6 +87,7 @@ func (e *Error) Type() ObjectType        { return ERROR_OBJ }
 func (s *String) Type() ObjectType       { return STRING_OBJ }
 func (b *Builtin) Type() ObjectType      { return BUILTIN_OBJ }
 func (ao *Array) Type() ObjectType       { return ARRAY_OBJ }
+func (h *Hash) Type() ObjectType         { return HASH_OBJ }
 
 // env
 func (f *Function) Type() ObjectType { return FUNCTION_OBJ }
@@ -148,4 +169,33 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 	env := NewEnvironment()
 	env.outer = outer
 	return env
+}
+
+//
+// Hashs
+
+// HashKey methods for boolean, integer and string
+// return a hash for the hashmap keys
+
+func (b *Boolean) HashKey() HashKey {
+	var value uint64
+
+	if b.Value {
+		value = 1
+	} else {
+		value = 0
+	}
+
+	return HashKey{Type: b.Type(), Value: value}
+}
+
+func (i *Integer) HashKey() HashKey {
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
