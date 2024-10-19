@@ -37,3 +37,7 @@ Only some main concepts of a programming language are implemented. Don't expect 
 - [x] Strings
 - [x] Builtin functions (len)
 - [x] Arrays
+- [x] Hashmaps
+
+## Working on:
+- [] Compiler

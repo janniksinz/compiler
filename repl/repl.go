@@ -45,6 +45,21 @@ func Start(in io.Reader, out io.Writer) {
 }
 
 const PICTURE = `
+
+	ERROR
+
+`
+
+func printParserErrors(out io.Writer, errors []string) {
+	io.WriteString(out, PICTURE)
+	io.WriteString(out, "Woops! We ran into some Errors here!")
+	io.WriteString(out, " parser errors:\n")
+	for _, msg := range errors {
+		io.WriteString(out, "\t"+msg+"\n")
+	}
+}
+
+const _ = `
             __,__
   .--.  .-"      "-.  .--.
  / .. \/   .-. .-.  \/ .. \
@@ -57,12 +72,3 @@ const PICTURE = `
         '._ '-=-' _.'
            '-----'
 `
-
-func printParserErrors(out io.Writer, errors []string) {
-	io.WriteString(out, PICTURE)
-	io.WriteString(out, "Woops! We ran into some Errors here!")
-	io.WriteString(out, " parser errors:\n")
-	for _, msg := range errors {
-		io.WriteString(out, "\t"+msg+"\n")
-	}
-}
