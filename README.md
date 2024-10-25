@@ -21,6 +21,7 @@ Only some main concepts of a programming language are implemented. Don't expect 
 - [x] Parser
 - [x] Evaluator
 - [x] REPL
+- [] Virtual Machine
 
 ## Features
 
@@ -41,3 +42,15 @@ Only some main concepts of a programming language are implemented. Don't expect 
 
 ## Working on:
 - [] Compiler
+- [] Virtual Machine
+
+
+### Compiler Structure:
+
+- Source Code
+- [x] Lexer & Parser
+- AST
+- [] Optimizer
+- Internal Representation
+- [] Code Generator
+- Machine Code
