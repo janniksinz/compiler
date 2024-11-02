@@ -50,20 +50,33 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpPop) // pop from stack after every expression
 
 	case *ast.InfixExpression:
+		// +------+----------+-------+
+		// | left | Operator | right |
+		// +------+----------+-------+
+
+		// compile left node
 		err := c.Compile(node.Left)
 		if err != nil {
 			return err
 		}
 
+		// compile right node
 		err = c.Compile(node.Right)
 		if err != nil {
 			return err
 		}
 
 		// switch
+		// get the Operator from the InfixExpression
 		switch node.Operator {
 		case "+":
 			c.emit(code.OpAdd)
+		case "-":
+			c.emit(code.OpSub)
+		case "*":
+			c.emit(code.OpMul)
+		case "/":
+			c.emit(code.OpDiv)
 		default:
 			return fmt.Errorf("compiler: unknown operator %s", node.Operator)
 		}

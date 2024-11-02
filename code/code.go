@@ -20,6 +20,9 @@ const (
 	OpConstant Opcode = iota
 	OpAdd
 	OpPop
+	OpSub
+	OpMul
+	OpDiv
 )
 
 // maping opcode definitions
@@ -33,6 +36,18 @@ var definitions = map[Opcode]*Definition{
 	OpAdd: {"OpAdd", []int{}},
 	// +-------+
 	// | OpAdd | no operands
+	// +-------+
+	OpSub: {"OpSub", []int{}},
+	// +-------+
+	// | OpSub |
+	// +-------+
+	OpMul: {"OpMul", []int{}},
+	// +-------+
+	// | OpMul |
+	// +-------+
+	OpDiv: {"OpDiv", []int{}},
+	// +-------+
+	// | OpDiv |
 	// +-------+
 	OpPop: {"OpPop", []int{}},
 	// +-------+
