@@ -39,6 +39,7 @@ func (vm *VM) StackTop() object.Object {
 	return vm.stack[vm.sp-1]
 }
 
+// push an object onto the stack
 func (vm *VM) push(o object.Object) error {
 	if vm.sp >= StackSize {
 		return fmt.Errorf("vm: stack overflow")
@@ -48,6 +49,20 @@ func (vm *VM) push(o object.Object) error {
 	vm.sp++
 
 	return nil
+}
+
+// pop the top object from the stack
+func (vm *VM) pop() object.Object {
+	o := vm.stack[vm.sp-1]
+	vm.sp--
+	return o
+}
+
+// check the last object that's on the stack before we pop it
+func (vm *VM) LastPoppedStackElem() object.Object {
+	return vm.stack[vm.sp]
+	// we don't delete from the stack, we only decrease the vm.sp
+	// so vm.sp is the last popped object
 }
 
 // FETCH-DECODE-EXECUTE cycle
@@ -69,6 +84,17 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpAdd:
+			// pop 2 constants from the stack
+			right := vm.pop()
+			left := vm.pop()
+			leftValue := left.(*object.Integer).Value
+			rightValue := right.(*object.Integer).Value
+
+			result := leftValue + rightValue
+			vm.push(&object.Integer{Value: result})
+		case code.OpPop:
+			vm.pop()
 		}
 	}
 	return nil

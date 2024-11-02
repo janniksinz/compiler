@@ -19,6 +19,7 @@ type Definition struct {
 const (
 	OpConstant Opcode = iota
 	OpAdd
+	OpPop
 )
 
 // maping opcode definitions
@@ -32,6 +33,10 @@ var definitions = map[Opcode]*Definition{
 	OpAdd: {"OpAdd", []int{}},
 	// +-------+
 	// | OpAdd | no operands
+	// +-------+
+	OpPop: {"OpPop", []int{}},
+	// +-------+
+	// | OpPop | no operands
 	// +-------+
 }
 

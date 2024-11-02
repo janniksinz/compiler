@@ -45,7 +45,7 @@ func runVMTests(t *testing.T, tests []vmTestCase) {
 			t.Fatalf("vm: runTests: vm error: %s", err)
 		}
 
-		stackElement := vm.StackTop()
+		stackElement := vm.LastPoppedStackElem()
 
 		testExpectedObject(t, tt.expected, stackElement)
 	}
@@ -72,12 +72,12 @@ func testExpectedObject(
 func testIntegerObject(expected int64, actual object.Object) error {
 	result, ok := actual.(*object.Integer)
 	if !ok {
-		return fmt.Errorf("vm: int: object is not Integer. got=%T (%+v)",
+		return fmt.Errorf("int: object is not Integer. got=%T (%+v)",
 			actual, actual)
 	}
 
 	if result.Value != expected {
-		return fmt.Errorf("vm: int: object has wrong value. got=%d, want=%d",
+		return fmt.Errorf("int: object has wrong value. got=%d, want=%d",
 			result.Value, expected)
 	}
 
@@ -88,7 +88,7 @@ func TestIntegerArithmetic(t *testing.T) {
 	tests := []vmTestCase{
 		{"1", 1},
 		{"2", 2},
-		{"1+2", 2}, // FIXME: for now we expect 2 on top of the stack but expect 3 once arithmetic instructions are implemented
+		{"1+2", 3},
 	}
 
 	runVMTests(t, tests)

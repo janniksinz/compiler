@@ -41,11 +41,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return err
 			}
 		}
+
 	case *ast.ExpressionStatement:
 		err := c.Compile(node.Expression)
 		if err != nil {
 			return err
 		}
+		c.emit(code.OpPop) // pop from stack after every expression
+
 	case *ast.InfixExpression:
 		err := c.Compile(node.Left)
 		if err != nil {
@@ -64,6 +67,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		default:
 			return fmt.Errorf("compiler: unknown operator %s", node.Operator)
 		}
+
 	case *ast.IntegerLiteral:
 		// NOTE: literals are constant expressions and their value does not change
 		integer := &object.Integer{Value: node.Value}
