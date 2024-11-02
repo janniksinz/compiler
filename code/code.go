@@ -36,7 +36,7 @@ func Lookup(op byte) (*Definition, error) {
 	return def, nil
 }
 
-// MAKE
+// MAKE encode
 func Make(op Opcode, operands ...int) []byte { // (opcode, int offset (location) to constant operands)
 	def, ok := definitions[op]
 	if !ok {
@@ -111,6 +111,7 @@ func (ins Instructions) fmtInstruction(def *Definition, operands []int) string {
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
 }
 
+// ReadOperands Decode
 func ReadOperands(def *Definition, ins Instructions) ([]int, int) {
 	operands := make([]int, len(def.OperandWidths))
 	offset := 0
