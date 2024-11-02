@@ -25,6 +25,9 @@ const (
 //	with name and width
 var definitions = map[Opcode]*Definition{
 	OpConstant: {"OpConstant", []int{2}},
+	// +------------+---------------------+
+	// | OpConstant | Constant Identifier |
+	// +------------+---------------------+
 }
 
 func Lookup(op byte) (*Definition, error) {
