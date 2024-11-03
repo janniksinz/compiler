@@ -9,6 +9,9 @@ import (
 
 const StackSize = 2048
 
+var True = &object.Boolean{Value: true}
+var False = &object.Boolean{Value: false}
+
 // VM
 // a struct with 4 fields
 type VM struct {
@@ -89,6 +92,18 @@ func (vm *VM) Run() error {
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return err
+			}
+
+		case code.OpTrue:
+			err := vm.push(True) // push global true
+			if err != nil {
+				return nil
+			}
+
+		case code.OpFalse:
+			err := vm.push(False) // push global false
+			if err != nil {
+				return nil
 			}
 
 		case code.OpPop:
