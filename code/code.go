@@ -23,6 +23,8 @@ const (
 	OpSub
 	OpMul
 	OpDiv
+	OpTrue
+	OpFalse
 )
 
 // maping opcode definitions
@@ -53,6 +55,8 @@ var definitions = map[Opcode]*Definition{
 	// +-------+
 	// | OpPop | no operands
 	// +-------+
+	OpTrue:  {"OpTrue", []int{}},
+	OpFalse: {"OpFalse", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
