@@ -25,6 +25,9 @@ const (
 	OpDiv
 	OpTrue
 	OpFalse
+	OpEqual
+	OpNotEqual
+	OpGreaterThan
 )
 
 // maping opcode definitions
@@ -41,15 +44,15 @@ var definitions = map[Opcode]*Definition{
 	// +-------+
 	OpSub: {"OpSub", []int{}},
 	// +-------+
-	// | OpSub |
+	// | OpSub | no operands
 	// +-------+
 	OpMul: {"OpMul", []int{}},
 	// +-------+
-	// | OpMul |
+	// | OpMul | no operands
 	// +-------+
 	OpDiv: {"OpDiv", []int{}},
 	// +-------+
-	// | OpDiv |
+	// | OpDiv | no operands
 	// +-------+
 	OpPop: {"OpPop", []int{}},
 	// +-------+
@@ -57,6 +60,22 @@ var definitions = map[Opcode]*Definition{
 	// +-------+
 	OpTrue:  {"OpTrue", []int{}},
 	OpFalse: {"OpFalse", []int{}},
+
+	OpEqual: {"OpEqual", []int{}},
+	// +---------+
+	// | OpEqual | no operands, compares 2 topmost from stack
+	// +---------+
+	OpNotEqual: {"OpNotEqual", []int{}},
+	// +------------+
+	// | OpNotEqual | no operands, compares 2 topmost from stack
+	// +------------+
+	OpGreaterThan: {"OpGreaterThan", []int{}},
+	// +---------------+
+	// | OpGreaterThan | no operands, compares 2 topmost from stack
+	// +---------------+
+	//
+	// we don't need OpLessThan because with compilation instead of interpretation
+	// we can use reordering of code
 }
 
 func Lookup(op byte) (*Definition, error) {

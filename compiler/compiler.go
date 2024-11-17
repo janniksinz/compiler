@@ -54,13 +54,29 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// | left | Operator | right |
 		// +------+----------+-------+
 
-		// compile left node
+		if node.Operator == "<" {
+			// compile right
+			err := c.Compile(node.Right)
+			if err != nil {
+				return nil
+			}
+			// before left
+			err = c.Compile(node.Left)
+			if err != nil {
+				return nil
+			}
+
+			c.emit(code.OpGreaterThan)
+			return nil
+		}
+
+		// compile left
 		err := c.Compile(node.Left)
 		if err != nil {
 			return err
 		}
 
-		// compile right node
+		// before right
 		err = c.Compile(node.Right)
 		if err != nil {
 			return err
@@ -77,6 +93,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpMul)
 		case "/":
 			c.emit(code.OpDiv)
+		case ">":
+			c.emit(code.OpGreaterThan)
+		case "==":
+			c.emit(code.OpEqual)
+		case "!=":
+			c.emit(code.OpNotEqual)
 		default:
 			return fmt.Errorf("compiler: unknown operator %s", node.Operator)
 		}
