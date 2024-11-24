@@ -97,13 +97,19 @@ func (vm *VM) Run() error {
 		case code.OpTrue:
 			err := vm.push(True) // push global true
 			if err != nil {
-				return nil
+				return err
 			}
 
 		case code.OpFalse:
 			err := vm.push(False) // push global false
 			if err != nil {
-				return nil
+				return err
+			}
+
+		case code.OpEqual, code.OpNotEqual, code.OpGreaterThan:
+			err := vm.executeComparison(op)
+			if err != nil {
+				return err
 			}
 
 		case code.OpPop:
@@ -153,4 +159,57 @@ func (vm *VM) executeBinaryIntegerOperation(
 	}
 	// return a possible error when pushing the result
 	return vm.push(&object.Integer{Value: result})
+}
+
+func (vm *VM) executeComparison(op code.Opcode) error {
+	right := vm.pop()
+	left := vm.pop()
+	//fmt.Printf("right=%v, left=%v", right, left)
+
+	// nil checks
+	if left == nil || right == nil {
+		return fmt.Errorf("vm: executeComparison: cannot compare nil values: left=%v, right=%v", left, right)
+	}
+
+	// manage integer comparison
+	if left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ {
+		return vm.executeIntegerComparison(op, left, right)
+	}
+
+	// just manage booleans
+	switch op {
+	case code.OpEqual:
+		return vm.push(nativeBoolToBooleanObject(right == left))
+	case code.OpNotEqual:
+		return vm.push(nativeBoolToBooleanObject(right != left))
+	default:
+		return fmt.Errorf("unknown operator: %d (%s %s)",
+			op, left.Type(), right.Type())
+	}
+}
+
+func (vm *VM) executeIntegerComparison(
+	op code.Opcode,
+	left, right object.Object,
+) error {
+	leftValue := left.(*object.Integer).Value
+	rightValue := right.(*object.Integer).Value
+
+	switch op {
+	case code.OpEqual:
+		return vm.push(nativeBoolToBooleanObject(rightValue == leftValue))
+	case code.OpNotEqual:
+		return vm.push(nativeBoolToBooleanObject(rightValue != leftValue))
+	case code.OpGreaterThan:
+		return vm.push(nativeBoolToBooleanObject(leftValue > rightValue))
+	default:
+		return fmt.Errorf("unknown operator: %d", op)
+	}
+}
+
+func nativeBoolToBooleanObject(input bool) *object.Boolean {
+	if input {
+		return True
+	}
+	return False
 }
