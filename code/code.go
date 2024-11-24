@@ -28,6 +28,8 @@ const (
 	OpEqual
 	OpNotEqual
 	OpGreaterThan
+	OpMinus
+	OpBang
 )
 
 // maping opcode definitions
@@ -73,9 +75,16 @@ var definitions = map[Opcode]*Definition{
 	// +---------------+
 	// | OpGreaterThan | no operands, compares 2 topmost from stack
 	// +---------------+
-	//
 	// we don't need OpLessThan because with compilation instead of interpretation
 	// we can use reordering of code
+	OpMinus: {"OpMinus", []int{}},
+	// +---------+
+	// | OpMinus | no operands
+	// +---------+
+	OpBang: {"OpBang", []int{}},
+	// +--------+
+	// | OpBang | no operands
+	// +--------+
 }
 
 func Lookup(op byte) (*Definition, error) {
