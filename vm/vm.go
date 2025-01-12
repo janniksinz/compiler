@@ -128,9 +128,43 @@ func (vm *VM) Run() error {
 		// end expression
 		case code.OpPop:
 			vm.pop()
+
+		// conditionals
+		case code.OpJump:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode the operand after the opcode
+			ip = pos - 1                                        // set instruction pointer to jump target
+			// ip increases with the start of the next iteration
+
+		case code.OpJumpNotTruthy:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode operand after opcode
+			ip += 2                                             // skip 2 bype operand
+
+			// check if condition is true
+			condition := vm.pop()
+			if !isTruthy(condition) {
+				// if not true, we jump to the alternative
+				ip = pos - 1
+			}
+			// if true, we do nothing and run the consequence
+
+		default:
+			panic("VM: run(): Encountered unknown OpCode")
+
 		}
+
 	}
 	return nil
+}
+
+func isTruthy(obj object.Object) bool {
+	switch obj := obj.(type) {
+
+	case *object.Boolean:
+		return obj.Value
+
+	default:
+		return true
+	}
 }
 
 func (vm *VM) executeBinaryOperation(op code.Opcode) error {
