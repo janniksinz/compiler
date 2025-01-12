@@ -7,10 +7,18 @@ import (
 	"monkey/object"
 )
 
+type EmittedInstruction struct {
+	Opcode   code.Opcode
+	Position int
+}
+
 // generate instructions and constants
 type Compiler struct {
 	instructions code.Instructions
 	constants    []object.Object
+	// to only keep the last Instruction on the stack
+	lastInstruction     EmittedInstruction
+	previousInstruction EmittedInstruction
 }
 
 type Bytecode struct {
@@ -23,6 +31,9 @@ func New() *Compiler {
 	return &Compiler{
 		instructions: code.Instructions{},
 		constants:    []object.Object{},
+		// track last Instruction that should be kept on stack
+		lastInstruction:     EmittedInstruction{},
+		previousInstruction: EmittedInstruction{},
 	}
 }
 
@@ -62,6 +73,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpMinus)
 		default:
 			return fmt.Errorf("compiler: unknown prefix operator %s", node.Operator)
+		}
+
+	case *ast.BlockStatement:
+		for _, s := range node.Statements { // compiling all the statements
+			err := c.Compile(s)
+			if err != nil {
+				return err
+			}
 		}
 
 	case *ast.InfixExpression:
@@ -118,6 +137,51 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("compiler: unknown infix operator %s", node.Operator)
 		}
 
+	case *ast.IfExpression:
+		err := c.Compile(node.Condition)
+		if err != nil {
+			return err
+		}
+
+		// emit an JumpIfFalse with a bogus value but save the location
+		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
+
+		err = c.Compile(node.Consequence)
+		if err != nil {
+			return err
+		}
+
+		if c.lastInstructionIsPop() {
+			c.removeLastPop()
+		}
+
+		// decide if alternative exists
+		if node.Alternative == nil {
+			// substitute the goto
+			afterConsequencePos := len(c.instructions)
+			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+		} else {
+			// if alternative exists,
+			// emit an `OpJump` with a bogus value
+			jumpPos := c.emit(code.OpJump, 9999)
+
+			// place the jumpto location after the jump
+			afterConsequencePos := len(c.instructions)
+			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+
+			err := c.Compile(node.Alternative)
+			if err != nil {
+				return err
+			}
+
+			if c.lastInstructionIsPop() {
+				c.removeLastPop()
+			}
+
+			afterAlternativePos := len(c.instructions)
+			c.changeOperand(jumpPos, afterAlternativePos)
+		}
+
 	case *ast.IntegerLiteral:
 		// NOTE: literals are constant expressions and their value does not change
 		integer := &object.Integer{Value: node.Value}
@@ -146,6 +210,9 @@ func (c *Compiler) Bytecode() *Bytecode {
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	ins := code.Make(op, operands...)
 	pos := c.addInstruction(ins)
+
+	c.setLastInstruction(op, pos)
+
 	return pos
 }
 
@@ -153,6 +220,14 @@ func (c *Compiler) addInstruction(ins []byte) int {
 	posNewInstruction := len(c.instructions)        // get next position
 	c.instructions = append(c.instructions, ins...) // append instruction
 	return posNewInstruction
+}
+
+func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
+	previous := c.lastInstruction
+	last := EmittedInstruction{Opcode: op, Position: pos}
+
+	c.previousInstruction = previous
+	c.lastInstruction = last
 }
 
 // Compile Helper
@@ -169,4 +244,28 @@ func (c *Compiler) addInstruction(ins []byte) int {
 func (c *Compiler) addConstant(obj object.Object) int {
 	c.constants = append(c.constants, obj)
 	return len(c.constants) - 1
+}
+
+func (c *Compiler) lastInstructionIsPop() bool {
+	return c.lastInstruction.Opcode == code.OpPop
+}
+
+func (c *Compiler) removeLastPop() {
+	c.instructions = c.instructions[:c.lastInstruction.Position]
+	c.lastInstruction = c.previousInstruction
+}
+
+// replaceInstruction replaces Instructions from position pos on
+func (c *Compiler) replaceInstruction(pos int, newInstruction []byte) {
+	for i := 0; i < len(newInstruction); i++ {
+		c.instructions[pos+i] = newInstruction[i]
+	}
+}
+
+// changeOperand
+func (c *Compiler) changeOperand(opPos int, operand int) {
+	op := code.Opcode(c.instructions[opPos]) // get the old opcode
+	newInstruction := code.Make(op, operand) // recreate the instruction with the new operand
+
+	c.replaceInstruction(opPos, newInstruction)
 }
