@@ -11,6 +11,7 @@ const StackSize = 2048
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
+var Null = &object.Null{}
 
 // VM
 // a struct with 4 fields
@@ -118,7 +119,6 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-
 		case code.OpMinus:
 			err := vm.executeMinusOperator()
 			if err != nil {
@@ -134,7 +134,6 @@ func (vm *VM) Run() error {
 			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode the operand after the opcode
 			ip = pos - 1                                        // set instruction pointer to jump target
 			// ip increases with the start of the next iteration
-
 		case code.OpJumpNotTruthy:
 			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode operand after opcode
 			ip += 2                                             // skip 2 bype operand
@@ -146,6 +145,12 @@ func (vm *VM) Run() error {
 				ip = pos - 1
 			}
 			// if true, we do nothing and run the consequence
+
+		case code.OpNull:
+			err := vm.push(Null)
+			if err != nil {
+				return err
+			}
 
 		default:
 			panic("VM: run(): Encountered unknown OpCode")

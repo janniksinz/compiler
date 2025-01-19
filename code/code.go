@@ -32,6 +32,7 @@ const (
 	OpBang
 	OpJumpNotTruthy
 	OpJump
+	OpNull
 )
 
 // maping opcode definitions
@@ -95,6 +96,8 @@ var definitions = map[Opcode]*Definition{
 	// +--------+--------------------+
 	// | OpJump | 2 byte jump offset |
 	// +--------+--------------------+
+
+	OpNull: {"OpNull", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

@@ -138,14 +138,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 	case *ast.IfExpression:
+		// compile the condition
 		err := c.Compile(node.Condition)
 		if err != nil {
 			return err
 		}
 
-		// emit an JumpIfFalse with a bogus value but save the location
+		// emit a jump to the alternative
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
 
+		// compile the consequence
 		err = c.Compile(node.Consequence)
 		if err != nil {
 			return err
@@ -155,20 +157,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.removeLastPop()
 		}
 
-		// decide if alternative exists
+		// emit a jump to after the alternative
+		jumpPos := c.emit(code.OpJump, 9999)
+
+		afterConsequencePos := len(c.instructions)
+		c.changeOperand(jumpNotTruthyPos, afterConsequencePos) // update the jump to the alternative
+
+		// compile the alternative
 		if node.Alternative == nil {
-			// substitute the goto
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+			// place a Null Alternative
+			c.emit(code.OpNull)
 		} else {
-			// if alternative exists,
-			// emit an `OpJump` with a bogus value
-			jumpPos := c.emit(code.OpJump, 9999)
-
-			// place the jumpto location after the jump
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-
+			// compile the real alterative
 			err := c.Compile(node.Alternative)
 			if err != nil {
 				return err
@@ -177,10 +177,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if c.lastInstructionIsPop() {
 				c.removeLastPop()
 			}
-
-			afterAlternativePos := len(c.instructions)
-			c.changeOperand(jumpPos, afterAlternativePos)
 		}
+
+		afterAlternativePos := len(c.instructions)
+		c.changeOperand(jumpPos, afterAlternativePos) // update the jump to after the alternative
 
 	case *ast.IntegerLiteral:
 		// NOTE: literals are constant expressions and their value does not change
