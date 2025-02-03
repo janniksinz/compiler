@@ -19,6 +19,7 @@ type Compiler struct {
 	// to only keep the last Instruction on the stack
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+	symbolTable         *SymbolTable
 }
 
 type Bytecode struct {
@@ -34,7 +35,15 @@ func New() *Compiler {
 		// track last Instruction that should be kept on stack
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		symbolTable:         NewSymbolTable(),
 	}
+}
+
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+	compiler := New()
+	compiler.symbolTable = s
+	compiler.constants = constants
+	return compiler
 }
 
 // walk the AST recursively
@@ -138,14 +147,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 	case *ast.IfExpression:
+		// compile the condition
 		err := c.Compile(node.Condition)
 		if err != nil {
 			return err
 		}
 
-		// emit an JumpIfFalse with a bogus value but save the location
+		// emit a jump to the alternative
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
 
+		// compile the consequence
 		err = c.Compile(node.Consequence)
 		if err != nil {
 			return err
@@ -155,20 +166,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.removeLastPop()
 		}
 
-		// decide if alternative exists
+		// emit a jump to after the alternative
+		jumpPos := c.emit(code.OpJump, 9999)
+
+		afterConsequencePos := len(c.instructions)
+		c.changeOperand(jumpNotTruthyPos, afterConsequencePos) // update the jump to the alternative
+
+		// compile the alternative
 		if node.Alternative == nil {
-			// substitute the goto
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+			// place a Null Alternative
+			c.emit(code.OpNull)
 		} else {
-			// if alternative exists,
-			// emit an `OpJump` with a bogus value
-			jumpPos := c.emit(code.OpJump, 9999)
-
-			// place the jumpto location after the jump
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-
+			// compile the real alterative
 			err := c.Compile(node.Alternative)
 			if err != nil {
 				return err
@@ -177,10 +186,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if c.lastInstructionIsPop() {
 				c.removeLastPop()
 			}
-
-			afterAlternativePos := len(c.instructions)
-			c.changeOperand(jumpPos, afterAlternativePos)
 		}
+
+		afterAlternativePos := len(c.instructions)
+		c.changeOperand(jumpPos, afterAlternativePos) // update the jump to after the alternative
 
 	case *ast.IntegerLiteral:
 		// NOTE: literals are constant expressions and their value does not change
@@ -193,6 +202,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 		} else {
 			c.emit(code.OpFalse)
 		}
+
+	case *ast.LetStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+		symbol := c.symbolTable.Define(node.Name.Value) // retuns (Name, Scope, Index)
+		c.emit(code.OpSetGlobal, symbol.Index)
+
+	case *ast.Identifier:
+		symbol, ok := c.symbolTable.Resolve(node.Value)
+		if !ok {
+			return fmt.Errorf("Compile(): undefined variable %s", node.Value) // "compile time error" !!
+		}
+		c.emit(code.OpGetGlobal, symbol.Index)
+
 	}
 	return nil
 }

@@ -32,6 +32,9 @@ const (
 	OpBang
 	OpJumpNotTruthy
 	OpJump
+	OpNull
+	OpGetGlobal
+	OpSetGlobal
 )
 
 // maping opcode definitions
@@ -88,13 +91,24 @@ var definitions = map[Opcode]*Definition{
 	// | OpBang | no operands
 	// +--------+
 	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
-	// +-----------------+--------------------+
+	// +-----------------+----------+---------+
 	// | OpJumpNotTruthy | 2 byte jump offset |
-	// +-----------------+--------------------+
+	// +-----------------+----------+---------+
 	OpJump: {"OpJump", []int{2}},
-	// +--------+--------------------+
+	// +--------+----------+---------+
 	// | OpJump | 2 byte jump offset |
-	// +--------+--------------------+
+	// +--------+----------+---------+
+
+	OpNull: {"OpNull", []int{}},
+	// +--------+
+	// | OpNull | no operands
+	// +--------+
+
+	OpGetGlobal: {"OpGetGlobal", []int{2}},
+	// +-------------+---------+---------+
+	// | OpSetGlobal | 2 byte integer    |
+	// +-------------+---------+---------+
+	OpSetGlobal: {"OpSetGlobal", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

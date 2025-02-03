@@ -298,16 +298,20 @@ func TestConditionals(t *testing.T) {
 			expectedConstants: []interface{}{10, 3333},
 			expectedInstructions: []code.Instructions{
 				// 0000
-				code.Make(code.OpTrue), // 1 byte
+				code.Make(code.OpTrue),
 				// 0001
-				code.Make(code.OpJumpNotTruthy, 7), // 3 byte
+				code.Make(code.OpJumpNotTruthy, 10),
 				// 0004
 				code.Make(code.OpConstant, 0),
 				// 0007
-				code.Make(code.OpPop), // 1 byte
-				// 0008
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpJump, 11), // jump to after the alternative
+				// 0010
+				code.Make(code.OpNull), // OpNull is the alternative if no other alternative exists
 				// 0011
+				code.Make(code.OpPop),
+				// 0012
+				code.Make(code.OpConstant, 1),
+				// 0015
 				code.Make(code.OpPop),
 			},
 		},
@@ -334,6 +338,55 @@ func TestConditionals(t *testing.T) {
 				// 0014
 				code.Make(code.OpConstant, 2),
 				// 0017
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
+}
+
+func TestGlobalLetStatements(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `
+			let one = 1;
+			let two = 2;
+			`,
+			expectedConstants: []interface{}{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpSetGlobal, 1),
+			},
+		},
+		{
+			input: `
+let one = 1;
+one;
+`,
+			expectedConstants: []interface{}{1},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+let one = 1;
+let two = one;
+two;
+`,
+			expectedConstants: []interface{}{1},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpSetGlobal, 1),
+				code.Make(code.OpGetGlobal, 1),
 				code.Make(code.OpPop),
 			},
 		},

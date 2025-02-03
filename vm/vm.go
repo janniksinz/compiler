@@ -8,9 +8,11 @@ import (
 )
 
 const StackSize = 2048
+const GlobalSize = 65536
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
+var Null = &object.Null{}
 
 // VM
 // a struct with 4 fields
@@ -20,6 +22,8 @@ type VM struct {
 
 	stack []object.Object // objects in the stack
 	sp    int             // Always points to the next value. Top of stack is stack[sp-1]
+
+	globals []object.Object
 }
 
 // takes the bytecode from the compiler
@@ -31,7 +35,15 @@ func New(bytecode *compiler.Bytecode) *VM {
 
 		stack: make([]object.Object, StackSize),
 		sp:    0,
+
+		globals: make([]object.Object, GlobalSize),
 	}
+}
+
+func NewWithGlobalStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+	vm := New(bytecode)
+	vm.globals = s
+	return vm
 }
 
 // returns the object on top of the stack
@@ -118,7 +130,6 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-
 		case code.OpMinus:
 			err := vm.executeMinusOperator()
 			if err != nil {
@@ -134,7 +145,6 @@ func (vm *VM) Run() error {
 			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode the operand after the opcode
 			ip = pos - 1                                        // set instruction pointer to jump target
 			// ip increases with the start of the next iteration
-
 		case code.OpJumpNotTruthy:
 			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode operand after opcode
 			ip += 2                                             // skip 2 bype operand
@@ -147,8 +157,31 @@ func (vm *VM) Run() error {
 			}
 			// if true, we do nothing and run the consequence
 
+		case code.OpNull:
+			err := vm.push(Null)
+			if err != nil {
+				return err
+			}
+
+		case code.OpSetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2 // skip 2 byte instructions
+
+			vm.globals[globalIndex] = vm.pop()
+
+		case code.OpGetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2 // skip 2 byte operands
+
+			err := vm.push(vm.globals[globalIndex])
+			if err != nil {
+				return err
+			}
+
 		default:
-			panic("VM: run(): Encountered unknown OpCode")
+			op_code, _ := code.Lookup(byte(op))
+			errString := fmt.Sprintf("VM: run(): Encountered unknown OpCode: %v", op_code)
+			panic(errString)
 
 		}
 
@@ -161,6 +194,8 @@ func isTruthy(obj object.Object) bool {
 
 	case *object.Boolean:
 		return obj.Value
+	case *object.Null:
+		return false
 
 	default:
 		return true
@@ -263,6 +298,8 @@ func (vm *VM) executeBangOperator() error {
 		return vm.push(False)
 	case False:
 		return vm.push(True)
+	case Null:
+		return vm.push(True) // Null is false and therefore we push True
 	default:
 		return vm.push(False)
 	}
