@@ -19,6 +19,7 @@ type Compiler struct {
 	// to only keep the last Instruction on the stack
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+	symbolTable         *SymbolTable
 }
 
 type Bytecode struct {
@@ -34,6 +35,7 @@ func New() *Compiler {
 		// track last Instruction that should be kept on stack
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		symbolTable:         NewSymbolTable(),
 	}
 }
 
@@ -199,6 +201,15 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
+		symbol := c.symbolTable.Define(node.Name.Value) // retuns (Name, Scope, Index)
+		c.emit(code.OpSetGlobal, symbol.Index)
+
+	case *ast.Identifier:
+		symbol, ok := c.symbolTable.Resolve(node.Value)
+		if !ok {
+			return fmt.Errorf("Compile(): undefined variable %s", node.Value) // "compile time error" !!
+		}
+		c.emit(code.OpGetGlobal, symbol.Index)
 
 	}
 	return nil
