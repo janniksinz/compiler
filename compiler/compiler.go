@@ -39,6 +39,13 @@ func New() *Compiler {
 	}
 }
 
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+	compiler := New()
+	compiler.symbolTable = s
+	compiler.constants = constants
+	return compiler
+}
+
 // walk the AST recursively
 // find *ast.Literals -> turn into *object.Objects -> add to constants
 //
