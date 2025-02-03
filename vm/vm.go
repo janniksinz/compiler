@@ -8,6 +8,7 @@ import (
 )
 
 const StackSize = 2048
+const GlobalSize = 65536
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
@@ -21,6 +22,8 @@ type VM struct {
 
 	stack []object.Object // objects in the stack
 	sp    int             // Always points to the next value. Top of stack is stack[sp-1]
+
+	globals []object.Object
 }
 
 // takes the bytecode from the compiler
@@ -32,6 +35,8 @@ func New(bytecode *compiler.Bytecode) *VM {
 
 		stack: make([]object.Object, StackSize),
 		sp:    0,
+
+		globals: make([]object.Object, GlobalSize),
 	}
 }
 
@@ -152,8 +157,25 @@ func (vm *VM) Run() error {
 				return err
 			}
 
+		case code.OpSetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2 // skip 2 byte instructions
+
+			vm.globals[globalIndex] = vm.pop()
+
+		case code.OpGetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2 // skip 2 byte operands
+
+			err := vm.push(vm.globals[globalIndex])
+			if err != nil {
+				return err
+			}
+
 		default:
-			panic("VM: run(): Encountered unknown OpCode")
+			op_code, _ := code.Lookup(byte(op))
+			errString := fmt.Sprintf("VM: run(): Encountered unknown OpCode: %v", op_code)
+			panic(errString)
 
 		}
 
