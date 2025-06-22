@@ -187,7 +187,22 @@ func (vm *VM) Run() error {
 
 			err := vm.push(array) // push array on stack
 			if err != nil {
-				return fmt.Errorf("vm: Run(OpArray): failed to push array to stack")
+				return fmt.Errorf("vm: Run(OpArray): failed to push array to stack. %s", err)
+			}
+
+		case code.OpHash:
+			numElements := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+
+			hash, err := vm.buildHash(vm.sp-numElements, vm.sp) // build hash from current stack pointer to sp - elements of the hash
+			if err != nil {
+				return fmt.Errorf("vm: Run(): unable to build Hash. %s", err)
+			}
+			vm.sp -= numElements // update new stack pointer
+
+			err = vm.push(hash)
+			if err != nil {
+				return fmt.Errorf("vm: Run(): failed to push hash to stack. %s", err)
 			}
 
 		default:
@@ -363,4 +378,30 @@ func (vm *VM) buildArray(startIndex, endIndex int) object.Object {
 	}
 
 	return &object.Array{Elements: elements} // return slice into array object
+}
+
+// hash
+
+func (vm *VM) buildHash(startIndex, endIndex int) (object.Object, error) {
+	hashedPairs := make(map[object.HashKey]object.HashPair)
+
+	for i := startIndex; i < endIndex; i += 2 {
+		// get values from the stack bottom up
+		key := vm.stack[i]
+		value := vm.stack[i+1]
+
+		// build HashPair
+		pair := object.HashPair{Key: key, Value: value}
+
+		// generate a HashKey from the key
+		hashKey, ok := key.(object.Hashable)
+		if !ok {
+			return nil, fmt.Errorf("vm: buildHash: unusable as hash key: %s", key.Type())
+		}
+
+		// build a list of hashpairs attached to our integer HashKey
+		hashedPairs[hashKey.HashKey()] = pair
+	}
+	// return a list of hashpairs (indexed by our int64 HashKey)
+	return &object.Hash{Pairs: hashedPairs}, nil
 }
