@@ -5,6 +5,7 @@ import (
 	"monkey/ast"
 	"monkey/code"
 	"monkey/object"
+	"sort"
 )
 
 type EmittedInstruction struct {
@@ -231,6 +232,33 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		c.emit(code.OpArray, len(node.Elements))
+
+	case *ast.HashLiteral:
+		// define keys array as array of Expression objects - and append keys to the array
+		keys := []ast.Expression{}
+		for k := range node.Pairs {
+			keys = append(keys, k)
+		}
+		// sort all keys by their string representation
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+
+		// go through each pair and compile keys and values
+		for i, k := range keys {
+			// compile key
+			err := c.Compile(k)
+			if err != nil {
+				return fmt.Errorf("comp: Compile(): (Hash) compilation of key %d failed. %s", i, err)
+			}
+			// compile the value
+			err = c.Compile(node.Pairs[k])
+			if err != nil {
+				return fmt.Errorf("comp: Compile(): (Hash) compilation of key %d failed. %s", i, err)
+			}
+		}
+
+		c.emit(code.OpHash, len(node.Pairs)*2) // emit a Hashset with the length of all the keys and values
 	}
 	return nil
 }
