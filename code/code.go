@@ -35,6 +35,7 @@ const (
 	OpNull
 	OpGetGlobal
 	OpSetGlobal
+	OpArray
 )
 
 // maping opcode definitions
@@ -109,6 +110,11 @@ var definitions = map[Opcode]*Definition{
 	// | OpSetGlobal | 2 byte integer    |
 	// +-------------+---------+---------+
 	OpSetGlobal: {"OpSetGlobal", []int{2}},
+
+	OpArray: {"OpArray", []int{2}},
+	// +---------+-----------------+
+	// | OpArray | length of array |
+	// +---------+-----------------+
 }
 
 func Lookup(op byte) (*Definition, error) {
