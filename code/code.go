@@ -112,9 +112,9 @@ var definitions = map[Opcode]*Definition{
 	OpSetGlobal: {"OpSetGlobal", []int{2}},
 
 	OpArray: {"OpArray", []int{2}},
-	// +---------+-----------------+
-	// | OpArray | length of array |
-	// +---------+-----------------+
+	// +---------+------------------+
+	// | OpArray | N (array length) |
+	// +---------+------------------+
 }
 
 func Lookup(op byte) (*Definition, error) {
