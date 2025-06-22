@@ -157,6 +157,28 @@ func TestArrayLiterals(t *testing.T) {
 	runVMTests(t, tests)
 }
 
+func TestHashLiterals(t *testing.T) {
+	tests := []vmTestCase{
+		{"{}", map[object.HashKey]int64{}},
+		{
+			"{1:2, 2:3}",
+			map[object.HashKey]int64{
+				(&object.Integer{Value: 1}).HashKey(): 2,
+				(&object.Integer{Value: 2}).HashKey(): 3,
+			},
+		},
+		{
+			"{1+1:2*2, 3+3:4*4}",
+			map[object.HashKey]int64{
+				(&object.Integer{Value: 2}).HashKey(): 4,
+				(&object.Integer{Value: 6}).HashKey(): 16,
+			},
+		},
+	}
+
+	runVMTests(t, tests)
+}
+
 // Helper testing Functions
 
 func testExpectedObject(
@@ -172,16 +194,19 @@ func testExpectedObject(
 		if err != nil {
 			t.Errorf("vm: testIntegerObject failed: %s", err)
 		}
+
 	case bool:
 		err := testBooleanObject(bool(expected), actual)
 		if err != nil {
 			t.Errorf("vm: testBooleanObject failed: %s", err)
 		}
+
 	case string:
 		err := testStringObject(expected, actual)
 		if err != nil {
 			t.Errorf("vm: testStringObject failed: %s", err)
 		}
+
 	case []int:
 		array, ok := actual.(*object.Array)
 		if !ok {
@@ -190,7 +215,7 @@ func testExpectedObject(
 			return
 		}
 		if len(array.Elements) != len(expected) {
-			t.Errorf("vm: testExpectedObject array: wrong number of elements. want=%d, got=%d",
+			t.Errorf("vm: testExpectedObject: array has wrong number of elements. want=%d, got=%d",
 				len(expected), len(array.Elements))
 			return
 		}
@@ -200,6 +225,29 @@ func testExpectedObject(
 				t.Errorf("vm: testIntegerObject failed (array): %s", err)
 			}
 		}
+
+	case map[object.HashKey]int64:
+		hash, ok := actual.(*object.Hash)
+		if !ok {
+			t.Errorf("vm: testExpectedObject: object is not a Hash. got=%T (%+v)", actual, actual)
+			return
+		}
+		if len(hash.Pairs) != len(expected) {
+			t.Errorf("vm: testExpectedObject: Hash has wrong number of Pairs. want=%d, got=%d",
+				len(expected), len(hash.Pairs))
+			return
+		}
+		for expectedKey, expectedValue := range expected {
+			pair, ok := hash.Pairs[expectedKey]
+			if !ok {
+				t.Errorf("vm: testExpectedObject: no pair for given key in hash.Pairs")
+			}
+			err := testIntegerObject(expectedValue, pair.Value)
+			if err != nil {
+				t.Errorf("vm: testIntegerObject failed for expectedKey %v. %s", expectedKey, err)
+			}
+		}
+
 	case *object.Null:
 		if actual != Null {
 			t.Errorf("vm: testNullObject failed: object is not Null: %T (%+v)", actual, actual)
