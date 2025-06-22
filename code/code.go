@@ -36,6 +36,7 @@ const (
 	OpGetGlobal
 	OpSetGlobal
 	OpArray
+	OpHash
 )
 
 // maping opcode definitions
@@ -115,6 +116,10 @@ var definitions = map[Opcode]*Definition{
 	// +---------+------------------+
 	// | OpArray | N (array length) |
 	// +---------+------------------+
+	OpHash: {"OpHash", []int{2}},
+	// +--------+---------------+
+	// | OpHash | N (hash size) | // length of keys and values are the same
+	// +--------+---------------+
 }
 
 func Lookup(op byte) (*Definition, error) {
