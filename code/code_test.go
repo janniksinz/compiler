@@ -96,3 +96,7 @@ func TestReadOperands(t *testing.T) {
 		}
 	}
 }
+
+func TestArrayLiterals(t *testing.T) {
+
+}
