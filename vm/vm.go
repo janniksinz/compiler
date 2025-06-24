@@ -205,6 +205,15 @@ func (vm *VM) Run() error {
 				return fmt.Errorf("vm: Run(): failed to push hash to stack. %s", err)
 			}
 
+		case code.OpIndex:
+			index := vm.pop()
+			left := vm.pop()
+
+			err := vm.executeIndexExpression(left, index)
+			if err != nil {
+				return err
+			}
+
 		default:
 			op_code, _ := code.Lookup(byte(op))
 			errString := fmt.Sprintf("VM: run(): Encountered unknown OpCode: %v", op_code)
@@ -332,6 +341,47 @@ func (vm *VM) executeIntegerComparison(
 	default:
 		return fmt.Errorf("unknown operator: %d", op)
 	}
+}
+
+// IndexExpressions
+func (vm *VM) executeIndexExpression(left, index object.Object) error {
+	switch {
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+		return vm.executeArrayIndex(left, index)
+	case left.Type() == object.HASH_OBJ:
+		return vm.executeHashIndex(left, index)
+	default:
+		return fmt.Errorf("vm: executeIndexExpression: index operator not supported: %s", left.Type())
+	}
+}
+
+func (vm *VM) executeArrayIndex(array, index object.Object) error {
+	arrayObject := array.(*object.Array)
+	i := index.(*object.Integer).Value
+	max := int64(len(arrayObject.Elements) - 1)
+
+	if i < 0 || i > max {
+		return vm.push(Null)
+	}
+
+	return vm.push(arrayObject.Elements[i])
+	// an OpIndex should always follow a pop operator that takes the element from the stack
+}
+
+func (vm *VM) executeHashIndex(hash, index object.Object) error {
+	hashObject := hash.(*object.Hash)
+
+	key, ok := index.(object.Hashable)
+	if !ok {
+		return fmt.Errorf("vm: executeHashIndex: %s is not a Hashable key", index.Type())
+	}
+
+	pair, ok := hashObject.Pairs[key.HashKey()]
+	if !ok {
+		return vm.push(Null) // key doesn't exist
+	}
+
+	return vm.push(pair.Value)
 }
 
 func (vm *VM) executeBangOperator() error {
