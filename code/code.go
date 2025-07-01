@@ -40,6 +40,7 @@ const (
 	OpIndex
 	OpCall
 	OpReturnValue
+	OpReturn
 )
 
 // maping opcode definitions
@@ -128,14 +129,15 @@ var definitions = map[Opcode]*Definition{
 	// | OpIndex | no operands
 	// +---------+
 
-	OpCall: {"OpCall", []int{}},
+	OpCall: {"OpCall", []int{}}, // call a function
 	// +--------+
 	// | OpCall |
 	// +--------+
-	OpReturnValue: {"OpReturnValue", []int{}},
+	OpReturnValue: {"OpReturnValue", []int{}}, // return a value
 	// +---------------+
 	// | OpReturnValue |
 	// +---------------+
+	OpReturn: {"OpReturn", []int{}}, // return Null
 }
 
 func Lookup(op byte) (*Definition, error) {
