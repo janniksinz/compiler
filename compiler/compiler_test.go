@@ -328,6 +328,30 @@ func TestIndexExpressions(t *testing.T) {
 	runCompilerTests(t, tests)
 }
 
+func TestFunctions(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `fn() { return 5 + 10 }`,
+			expectedConstants: []interface{}{
+				5,
+				10,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
+}
+
 // testing the compiler and making assertions about the output
 func runCompilerTests(t *testing.T, tests []compilerTestCase) {
 	t.Helper()
@@ -415,6 +439,18 @@ func testConstants(
 			err := testStringObject(constant, actual[i])
 			if err != nil {
 				return fmt.Errorf("comp: testConstants: constant %d - testStringObject failed: %s",
+					i, err)
+			}
+		case []code.Instructions:
+			fn, ok := actual[i].(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("comp: testConstants: constant number %d - not a function: %T",
+					i, actual[i])
+			}
+
+			err := testInstructions(constant, fn.Instructions)
+			if err != nil {
+				return fmt.Errorf("comp: testConstants: constant number %d - testInstructions failed: %s",
 					i, err)
 			}
 		}
