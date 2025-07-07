@@ -331,7 +331,7 @@ func TestIndexExpressions(t *testing.T) {
 func TestFunctions(t *testing.T) {
 	tests := []compilerTestCase{
 		{
-			input: `fn() { return 5 + 10 }`,
+			input: `fn() { return 5 + 10 }`, // parseReturnStatement has been changed to allow for return without ;
 			expectedConstants: []interface{}{
 				5,
 				10,
