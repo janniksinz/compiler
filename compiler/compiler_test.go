@@ -352,6 +352,28 @@ func TestFunctions(t *testing.T) {
 	runCompilerTests(t, tests)
 }
 
+// Compilation Scopes
+func TestCompilerScopes(t *testing.T) {
+	compiler := New()
+	if compiler.scopeIndex != 0 {
+		t.Errorf("comp: scope: scopeIndex wrong. got=%d, want=%d", compiler.scopeIndex, 0)
+	}
+
+	compiler.emit(code.OpMul)
+
+	compiler.enterScope()
+	if compiler.scopeIndex != 1 {
+		t.Errorf("comp: scope: scopeIndex wron. got=%d, want=%d", compiler.scopeIndex, 1)
+	}
+
+	compiler.emit(code.OpSub)
+
+	if len(compiler.scopes[compiler.scopeIndex].instructions) != 1 {
+		t.Errorf("comp: scope: instructions length wrong. got=%d",
+			len(compiler.scopes[compiler.scopeIndex].instructions))
+	}
+}
+
 // testing the compiler and making assertions about the output
 func runCompilerTests(t *testing.T, tests []compilerTestCase) {
 	t.Helper()

@@ -21,11 +21,22 @@ type Compiler struct {
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
 	symbolTable         *SymbolTable
+
+	scopes     []CompilationScope // stack of compilation scopes
+	scopeIndex int
 }
 
 type Bytecode struct {
 	Instructions code.Instructions
 	Constants    []object.Object
+}
+
+// before compiling a new scope e.g. a function body, we push a new CompilationScope on to the scopes stack
+// while compiling inside this scope, the emit() method will only modify fields of the current CompilationScope
+type CompilationScope struct {
+	instructions        code.Instructions
+	lastInstruction     EmittedInstruction
+	previousInstruction EmittedInstruction
 }
 
 // init compiler reference
