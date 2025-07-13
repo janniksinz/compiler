@@ -5,22 +5,24 @@ import (
 	"fmt"
 	"hash/fnv"
 	"monkey/ast"
+	"monkey/code"
 	"strings"
 )
 
 type ObjectType string
 
 const (
-	INTEGER_OBJ      = "INTEGER"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NULL_OBJ         = "NULL"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	FUNCTION_OBJ     = "FUNCTION"
-	STRING_OBJ       = "STRING"
-	BUILTIN_OBJ      = "BUILTIN"
-	ARRAY_OBJ        = "ARRAY"
-	HASH_OBJ         = "HASH"
+	INTEGER_OBJ           = "INTEGER"
+	BOOLEAN_OBJ           = "BOOLEAN"
+	NULL_OBJ              = "NULL"
+	RETURN_VALUE_OBJ      = "RETURN_VALUE"
+	ERROR_OBJ             = "ERROR"
+	FUNCTION_OBJ          = "FUNCTION"
+	STRING_OBJ            = "STRING"
+	BUILTIN_OBJ           = "BUILTIN"
+	ARRAY_OBJ             = "ARRAY"
+	HASH_OBJ              = "HASH"
+	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
 )
 
 type Object interface {
@@ -78,6 +80,10 @@ type Hash struct {
 	Pairs map[HashKey]HashPair
 }
 
+type CompiledFunction struct {
+	Instructions code.Instructions
+}
+
 // Type functions
 func (i *Integer) Type() ObjectType      { return INTEGER_OBJ }
 func (b *Boolean) Type() ObjectType      { return BOOLEAN_OBJ }
@@ -88,6 +94,8 @@ func (s *String) Type() ObjectType       { return STRING_OBJ }
 func (b *Builtin) Type() ObjectType      { return BUILTIN_OBJ }
 func (ao *Array) Type() ObjectType       { return ARRAY_OBJ }
 func (h *Hash) Type() ObjectType         { return HASH_OBJ }
+
+func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION_OBJ }
 
 // env
 func (f *Function) Type() ObjectType { return FUNCTION_OBJ }
@@ -147,6 +155,10 @@ func (h *Hash) Inspect() string {
 	out.WriteString("}")
 
 	return out.String()
+}
+
+func (cf *CompiledFunction) Inspect() string {
+	return fmt.Sprintf("CompiledFunction[%p]", cf)
 }
 
 // Environment

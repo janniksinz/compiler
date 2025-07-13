@@ -1,0 +1,3 @@
+#!/bin/bash
+# Run tests with a 5-second timeout
+go test -timeout=5s -v ./...
