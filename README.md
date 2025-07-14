@@ -13,6 +13,17 @@ Start the REPL within your local go environment to test it out:
 ```bash
 go run main.go
 ```
+
+You can run code like this:
+```go
+(1==1) // -> true
+if (1==1) {1} // -> 1
+if (1==2) {3} // -> null
+['123', 5]
+{'1':1, '2':2}
+let a = fn(b){5+a}
+```
+
 Only some main concepts of a programming language are implemented. Don't expect list comprehension here :)
 
 ## Components
