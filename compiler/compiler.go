@@ -317,10 +317,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
 		if err != nil {
-			fmt.Errorf("comp: Compile(): (ReturnStatement) compilation failed. %s", err)
+			return fmt.Errorf("comp: Compile(): (ReturnStatement) compilation failed. %s", err)
 		}
 
 		c.emit(code.OpReturnValue)
+
+	case *ast.CallExpression:
+		err := c.Compile(node.Function)
+		if err != nil {
+			return fmt.Errorf("comp: Compile(): (CallExpression) compilation failed. %s", err)
+		}
+
+		c.emit(code.OpCall)
 
 	}
 	return nil
