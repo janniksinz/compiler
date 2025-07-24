@@ -234,6 +234,24 @@ func (vm *VM) Run() error {
 				return err
 			}
 
+		case code.OpCall:
+			fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("calling non-function")
+			}
+			frame := NewFrame(fn)
+			vm.pushFrame(frame)
+
+		case code.OpReturnValue:
+			returnValue := vm.pop()
+			vm.popFrame()
+			vm.pop()
+
+			err := vm.push(returnValue)
+			if err != nil {
+				return err
+			}
+
 		default:
 			op_code, _ := code.Lookup(byte(op))
 			errString := fmt.Sprintf("VM: run(): Encountered unknown OpCode: %v", op_code)
