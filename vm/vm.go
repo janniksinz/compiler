@@ -9,6 +9,7 @@ import (
 
 const StackSize = 2048
 const GlobalSize = 65536
+const MaxFrames = 1024
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
@@ -17,26 +18,36 @@ var Null = &object.Null{}
 // VM
 // a struct with 4 fields
 type VM struct {
-	constants    []object.Object
-	instructions code.Instructions
+	constants []object.Object
 
 	stack []object.Object // objects in the stack
 	sp    int             // Always points to the next value. Top of stack is stack[sp-1]
 
 	globals []object.Object
+
+	frames      []*Frame // the instruction pointer "ip" is now part of the frame
+	framesIndex int
 }
 
 // takes the bytecode from the compiler
 // returns a vm from that bytecode
 func New(bytecode *compiler.Bytecode) *VM {
+	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
+	mainFrame := NewFrame(mainFn) // add main function to main frame
+
+	frames := make([]*Frame, MaxFrames) // create frames array
+	frames[0] = mainFrame               // push mainFrame to index 0
+
 	return &VM{
-		instructions: bytecode.Instructions,
-		constants:    bytecode.Constants,
+		constants: bytecode.Constants,
 
 		stack: make([]object.Object, StackSize),
 		sp:    0,
 
 		globals: make([]object.Object, GlobalSize),
+
+		frames:      frames, // set out frames
+		framesIndex: 1,      // and init the index for our next frame (current is 0)
 	}
 }
 
@@ -83,16 +94,25 @@ func (vm *VM) LastPoppedStackElem() object.Object {
 // FETCH-DECODE-EXECUTE cycle
 // iterate through vm.instructions by incrementing the instruction pointer
 func (vm *VM) Run() error {
-	// instruction pointer
-	for ip := 0; ip < len(vm.instructions); ip++ {
-		// fetch the opcode
-		op := code.Opcode(vm.instructions[ip])
+	var ip int
+	var ins code.Instructions
+	var op code.Opcode
 
+	// execute OpCodes, while the instruction pointer is not at the end of the instruction stack
+	for vm.currentFrame().ip < len(vm.currentFrame().Instructions())-1 {
+		vm.currentFrame().ip++ // increment the instruction pointer in the current frame
+
+		ip = vm.currentFrame().ip
+		ins = vm.currentFrame().Instructions()
+		// fetch the opcode
+		op = code.Opcode(ins[ip]) // fetch the next opcode from instructions at the current instruction pointer
+
+		// execute OpCode
 		switch op {
 		case code.OpConstant:
 			// decoding the operands of the instruction in the bytecode
-			constIndex := code.ReadUint16(vm.instructions[ip+1:])
-			ip += 2 // increment the instruction pointer ip to point to the next Opcode instead of an operand
+			constIndex := code.ReadUint16(ins[ip+1:])
+			vm.currentFrame().ip += 2 // increment the instruction pointer ip to point to the next Opcode instead of an operand
 
 			// Execute
 			err := vm.push(vm.constants[constIndex])
@@ -142,18 +162,18 @@ func (vm *VM) Run() error {
 
 		// conditionals
 		case code.OpJump:
-			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode the operand after the opcode
-			ip = pos - 1                                        // set instruction pointer to jump target
+			pos := int(code.ReadUint16(ins[ip+1:])) // decode the operand after the opcode
+			vm.currentFrame().ip = pos - 1          // set instruction pointer to jump target
 			// ip increases with the start of the next iteration
 		case code.OpJumpNotTruthy:
-			pos := int(code.ReadUint16(vm.instructions[ip+1:])) // decode operand after opcode
-			ip += 2                                             // skip 2 bype operand
+			pos := int(code.ReadUint16(ins[ip+1:])) // decode operand after opcode
+			vm.currentFrame().ip += 2               // skip 2 bype operand
 
 			// check if condition is true
 			condition := vm.pop()
 			if !isTruthy(condition) {
 				// if not true, we jump to the alternative
-				ip = pos - 1
+				vm.currentFrame().ip = pos - 1
 			}
 			// if true, we do nothing and run the consequence
 
@@ -164,14 +184,14 @@ func (vm *VM) Run() error {
 			}
 
 		case code.OpSetGlobal:
-			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
-			ip += 2 // skip 2 byte instructions
+			globalIndex := code.ReadUint16(ins[ip+1:])
+			vm.currentFrame().ip += 2 // skip 2 byte instructions
 
 			vm.globals[globalIndex] = vm.pop()
 
 		case code.OpGetGlobal:
-			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
-			ip += 2 // skip 2 byte operands
+			globalIndex := code.ReadUint16(ins[ip+1:])
+			vm.currentFrame().ip += 2 // skip 2 byte operands
 
 			err := vm.push(vm.globals[globalIndex])
 			if err != nil {
@@ -179,8 +199,8 @@ func (vm *VM) Run() error {
 			}
 
 		case code.OpArray:
-			numElements := int(code.ReadUint16(vm.instructions[ip+1:])) // read the number of elements from the OpArray operand
-			ip += 2
+			numElements := int(code.ReadUint16(ins[ip+1:])) // read the number of elements from the OpArray operand
+			vm.currentFrame().ip += 2
 
 			array := vm.buildArray(vm.sp-numElements, vm.sp)
 			vm.sp = vm.sp - numElements
@@ -191,8 +211,8 @@ func (vm *VM) Run() error {
 			}
 
 		case code.OpHash:
-			numElements := int(code.ReadUint16(vm.instructions[ip+1:]))
-			ip += 2
+			numElements := int(code.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
 
 			hash, err := vm.buildHash(vm.sp-numElements, vm.sp) // build hash from current stack pointer to sp - elements of the hash
 			if err != nil {
@@ -214,6 +234,24 @@ func (vm *VM) Run() error {
 				return err
 			}
 
+		case code.OpCall:
+			fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("calling non-function")
+			}
+			frame := NewFrame(fn)
+			vm.pushFrame(frame)
+
+		case code.OpReturnValue:
+			returnValue := vm.pop()
+			vm.popFrame()
+			vm.pop()
+
+			err := vm.push(returnValue)
+			if err != nil {
+				return err
+			}
+
 		default:
 			op_code, _ := code.Lookup(byte(op))
 			errString := fmt.Sprintf("VM: run(): Encountered unknown OpCode: %v", op_code)
@@ -224,6 +262,26 @@ func (vm *VM) Run() error {
 	}
 	return nil
 }
+
+//
+// FRAMES
+//
+
+func (vm *VM) currentFrame() *Frame {
+	return vm.frames[vm.framesIndex-1] // the current frame is Index-1 because we initialize our first mainFrame as 0 and initialize the *VM framesIndex as 1
+}
+
+func (vm *VM) pushFrame(f *Frame) {
+	vm.frames[vm.framesIndex] = f
+	vm.framesIndex++
+}
+
+func (vm *VM) popFrame() *Frame {
+	vm.framesIndex--
+	return vm.frames[vm.framesIndex]
+}
+
+// END FRAMES
 
 func isTruthy(obj object.Object) bool {
 	switch obj := obj.(type) {
