@@ -252,6 +252,15 @@ func (vm *VM) Run() error {
 				return err
 			}
 
+		case code.OpReturn:
+			vm.popFrame()
+			vm.pop()
+
+			err := vm.push(Null)
+			if err != nil {
+				return err
+			}
+
 		default:
 			op_code, _ := code.Lookup(byte(op))
 			errString := fmt.Sprintf("VM: run(): Encountered unknown OpCode: %v", op_code)

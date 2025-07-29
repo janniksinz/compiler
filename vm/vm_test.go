@@ -248,6 +248,42 @@ func TestFunctionsWithReturnStatement(t *testing.T) {
 	runVMTests(t, tests)
 }
 
+func TestFunctionsWithoutReturnValue(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let noReturn = fn() {};
+			noReturn();
+			`,
+			expected: Null,
+		},
+		{
+			input: `
+			let noReturn = fn() {};
+			let noReturnTwo = fn(){noReturn();};
+			noReturnTwo();
+			`,
+		},
+	}
+
+	runVMTests(t, tests)
+}
+
+func TestFirstClassFunctions(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let returnsOne = fn() {1}
+			let returnsOneReturner = fn() {returnsOne}
+			returnsOneReturner()()
+			`,
+			expected: 1,
+		},
+	}
+
+	runVMTests(t, tests)
+}
+
 // Helper testing Functions
 
 func testExpectedObject(
