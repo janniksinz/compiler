@@ -93,7 +93,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
-
 		switch node.Operator {
 		case "!":
 			c.emit(code.OpBang)
@@ -115,7 +114,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// +------+----------+-------+
 		// | left | Operator | right |
 		// +------+----------+-------+
-
 		if node.Operator == "<" {
 			// compile right
 			err := c.Compile(node.Right)
@@ -127,23 +125,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return nil
 			}
-
 			c.emit(code.OpGreaterThan)
 			return nil
 		}
-
 		// compile left
 		err := c.Compile(node.Left)
 		if err != nil {
 			return err
 		}
-
 		// before right
 		err = c.Compile(node.Right)
 		if err != nil {
 			return err
 		}
-
 		// switch
 		// get the Operator from the InfixExpression
 		switch node.Operator {
@@ -171,26 +165,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
-
 		// emit a jump to the alternative
 		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
-
 		// compile the consequence
 		err = c.Compile(node.Consequence)
 		if err != nil {
 			return err
 		}
-
 		if c.lastInstructionIs(code.OpPop) {
 			c.removeLastPop()
 		}
-
 		// emit a jump to after the alternative
 		jumpPos := c.emit(code.OpJump, 9999)
-
 		afterConsequencePos := len(c.currentInstructions())
 		c.changeOperand(jumpNotTruthyPos, afterConsequencePos) // update the jump to the alternative
-
 		// compile the alternative
 		if node.Alternative == nil {
 			// place a Null Alternative
@@ -201,12 +189,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return err
 			}
-
 			if c.lastInstructionIs(code.OpPop) {
 				c.removeLastPop()
 			}
 		}
-
 		afterAlternativePos := len(c.currentInstructions())
 		c.changeOperand(jumpPos, afterAlternativePos) // update the jump to after the alternative
 
@@ -215,6 +201,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		integer := &object.Integer{Value: node.Value}
 		// we generate the OpConstant instruction with the constant identifier
 		c.emit(code.OpConstant, c.addConstant(integer))
+
 	case *ast.Boolean:
 		if node.Value {
 			c.emit(code.OpTrue)
@@ -228,14 +215,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 		symbol := c.symbolTable.Define(node.Name.Value) // retuns (Name, Scope, Index)
-		c.emit(code.OpSetGlobal, symbol.Index)
+		if symbol.Scope == GlobalScope {
+			c.emit(code.OpSetGlobal, symbol.Index)
+		} else {
+			c.emit(code.OpSetLocal, symbol.Index)
+		}
 
 	case *ast.Identifier:
 		symbol, ok := c.symbolTable.Resolve(node.Value)
 		if !ok {
 			return fmt.Errorf("Compile(): undefined variable %s", node.Value) // "compile time error" !!
 		}
-		c.emit(code.OpGetGlobal, symbol.Index)
+		if symbol.Scope == GlobalScope {
+			c.emit(code.OpGetGlobal, symbol.Index)
+		} else {
+			c.emit(code.OpGetLocal, symbol.Index)
+		}
 
 	case *ast.StringLiteral:
 		str := &object.String{Value: node.Value}
@@ -446,6 +441,7 @@ func (c *Compiler) enterScope() {
 	}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex += 1
+	c.symbolTable = NewEnclosedSymbolTable(c.symbolTable)
 }
 
 // exit the top scope on the stack
@@ -454,6 +450,7 @@ func (c *Compiler) leaveScope() code.Instructions {
 
 	c.scopes = c.scopes[:len(c.scopes)-1]
 	c.scopeIndex -= 1
+	c.symbolTable = c.symbolTable.Outer
 
 	return instructions
 }
